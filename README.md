@@ -2,6 +2,27 @@
 
 A native macOS menu-bar app that keeps your friends' HypeRate heart rates close by. Requires macOS 14 or later; supports Apple Silicon and Intel. Built with SwiftUI, AppKit, Foundation, and Security, with no third-party dependencies.
 
+## Screenshots
+
+Native views rendered with sample friends and simulated heart rates. The popover scrolls to show everyone.
+
+| Light appearance | Dark appearance |
+| --- | --- |
+| ![HeartBar popover in light mode showing simulated heart rates and menu-bar favorites](docs/screenshots/popover-light.png) | ![HeartBar popover in dark mode showing simulated heart rates and menu-bar favorites](docs/screenshots/popover-dark.png) |
+
+<details>
+<summary>Friends and connection settings</summary>
+
+**Manage friends and favorites**
+
+![Friends settings with sample HypeRate IDs, favorite stars, reorder controls, and edit and remove buttons](docs/screenshots/friends.png)
+
+**Connect to HypeRate or try the demo**
+
+![Connection settings with demo mode enabled, an empty API-key field, and reconnect controls](docs/screenshots/connection.png)
+
+</details>
+
 ## Run the app
 
 With **Xcode 16 or newer**, open `HeartBar.xcodeproj`, select the shared **HeartBar** scheme and **My Mac**, then press **⌘R**. Local builds use ad-hoc signing; no developer account is required. The app appears in the menu bar, without a Dock icon.
@@ -67,6 +88,7 @@ xcodebuild -project HeartBar.xcodeproj -scheme HeartBar \
 - `Scripts/generate-project.py`: regenerates the checked-in Xcode project and shared scheme when source files are added or removed. Uses only Python's standard library.
 - `Scripts/GenerateIcon.swift`: regenerates the app icon without image dependencies.
 - `Scripts/verify-ui.sh` and `Scripts/VerifyUI.swift`: render the real views and verify background demo updates with isolated, in-memory settings. See `VERIFICATION.md` for results and remaining interactive checks.
+- `docs/screenshots`: README images. To refresh them, run `Scripts/verify-ui.sh` and copy `popover-light.png`, `popover-dark.png`, `friends.png`, and `connection.png` from `build/previews/` into this directory.
 
 ## Troubleshooting
 
