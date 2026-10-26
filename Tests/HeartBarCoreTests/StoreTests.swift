@@ -55,7 +55,6 @@ import Testing
         let sam = try store.saveFriend(name: "Sam", hypeRateID: "sam")
         store.start()
         defer { store.stop() }
-        store.updateDisplay { $0.sidebarVisible = false }
         source.onEvent?(sam.id, .reading(HeartRateReading(bpm: 81, receivedAt: clock.now)))
         #expect(store.menuBarTitle == "♥ Ana — · Sam 81")
         #expect(store.status(for: ana).reading == nil)
@@ -132,16 +131,14 @@ import Testing
         #expect(sources[1].started == [friend])
     }
 
-    @Test func persistsReorderingAndDisplayPreferences() throws {
+    @Test func persistsReordering() throws {
         let repository = MemoryPreferences()
         let store = makeStore(repository: repository)
         let first = try store.saveFriend(name: "Ana", hypeRateID: "ana")
         let second = try store.saveFriend(name: "Sam", hypeRateID: "sam")
         store.moveFriend(second, by: -1)
-        store.updateDisplay { $0.edge = .left; $0.screenID = 42; $0.topOffset = 100; $0.sidebarVisible = false }
         let restored = makeStore(repository: repository)
         #expect(restored.friends == [second, first])
-        #expect(restored.preferences.display == store.preferences.display)
         #expect(restored.statuses.isEmpty)
     }
 
@@ -153,11 +150,16 @@ import Testing
         var preferences = Preferences()
         preferences.friends = [Friend(name: "Ana", hypeRateID: "abc", isFavorite: true)]
         preferences.demoMode = true
-        preferences.display.edge = .left
         try repository.save(preferences)
+        // Existing installations may still have the removed placement settings.
+        var saved = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(preferences)) as? [String: Any])
+        saved["display"] = ["edge": "left", "height": 600]
+        defaults.set(try JSONSerialization.data(withJSONObject: saved), forKey: "HeartBar.preferences.v1")
         #expect(try repository.load() == preferences)
+        try repository.save(preferences)
         let encoded = String(decoding: try #require(defaults.data(forKey: "HeartBar.preferences.v1")), as: UTF8.self)
         #expect(!encoded.contains("apiKey"))
         #expect(!encoded.contains("reading"))
+        #expect(!encoded.contains("display"))
     }
 }

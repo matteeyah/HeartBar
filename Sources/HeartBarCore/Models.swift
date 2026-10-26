@@ -102,24 +102,10 @@ public struct ParticipantStatus: Equatable, Sendable {
     }
 }
 
-public enum SidebarEdge: String, Codable, CaseIterable, Sendable {
-    case left, right
-}
-
-public struct DisplayPreferences: Codable, Equatable, Sendable {
-    public var edge: SidebarEdge = .right
-    public var screenID: UInt32?
-    public var topOffset: Double = 24
-    public var height: Double = 600
-    public var sidebarVisible: Bool = true
-    public init() {}
-}
-
 public struct Preferences: Codable, Equatable, Sendable {
     public var friends: [Friend] = []
     public var demoMode: Bool = false
     public var demoFavorites: [UUID] = Friend.demoFriends.map(\.id)
-    public var display = DisplayPreferences()
     public init() {}
 
     public mutating func sanitize() {
@@ -137,8 +123,6 @@ public struct Preferences: Codable, Equatable, Sendable {
             return friend
         }
         demoFavorites = Array(Set(demoFavorites).intersection(Friend.demoFriends.map(\.id))).sorted { $0.uuidString < $1.uuidString }
-        display.height = display.height.isFinite ? max(320, min(1200, display.height)) : 600
-        display.topOffset = display.topOffset.isFinite ? max(0, display.topOffset) : 24
     }
 }
 

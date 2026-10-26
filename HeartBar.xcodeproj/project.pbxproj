@@ -90,15 +90,15 @@
 			"isa" = "PBXBuildFile";
 			"fileRef" = "617964F3AC9A71B6DEC94F13";
 		};
-		"8473346361A1D7BAEFFFDA56" = {
+		"21A0987B92F10EE824023090" = {
 			"isa" = "PBXFileReference";
 			"lastKnownFileType" = "sourcecode.swift";
-			"path" = "HeartBarPanelView.swift";
+			"path" = "HeartBarPopoverView.swift";
 			"sourceTree" = "<group>";
 		};
-		"8471592C0C597093F96032CD" = {
+		"05AA30E1A2D8B8AD8D093655" = {
 			"isa" = "PBXBuildFile";
-			"fileRef" = "8473346361A1D7BAEFFFDA56";
+			"fileRef" = "21A0987B92F10EE824023090";
 		};
 		"0AAA110169F8CE41EE4B8CC1" = {
 			"isa" = "PBXFileReference";
@@ -114,7 +114,7 @@
 			"isa" = "PBXGroup";
 			"children" = (
 				"617964F3AC9A71B6DEC94F13",
-				"8473346361A1D7BAEFFFDA56",
+				"21A0987B92F10EE824023090",
 				"0AAA110169F8CE41EE4B8CC1",
 			);
 			"name" = "HeartBar";
@@ -126,7 +126,7 @@
 			"buildActionMask" = 2147483647;
 			"files" = (
 				"E47969C1D0D23403FEAF1CDE",
-				"8471592C0C597093F96032CD",
+				"05AA30E1A2D8B8AD8D093655",
 				"356DF68CBCE2D38077D16D1E",
 			);
 			"runOnlyForDeploymentPostprocessing" = 0;

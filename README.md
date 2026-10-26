@@ -22,15 +22,14 @@ Build both architectures with `Scripts/build-app.sh --universal`. The resulting 
 3. In **Friends**, add each person's name and the ID from their HypeRate app. They must be actively streaming. IDs must be unique; letters, numbers, hyphens, and underscores are accepted.
 4. The first three friends are favorites. Star or unstar friends to choose up to three menu-bar readings. Use the arrows to reorder friends, **Edit** to change their name or ID, and the trash button to remove them.
 
-**Demo mode** in Connection simulates Ana, Sam, and Mika without a network connection or API key. Both the panel and menu bar explicitly label demo data. Your real friends and their favorites are preserved when switching modes. The empty sidebar also has a **Try the demo** button.
+**Demo mode** in Connection simulates Ana, Sam, and Mika without a network connection or API key. Both the popover and menu bar explicitly label demo data. Your real friends and their favorites are preserved when switching modes. The empty popover also has a **Try the demo** button.
 
-## Sidebar and menu bar
+## Menu bar
 
-- The 320-point floating sidebar starts on the right. Settings → **Sidebar** selects the edge and display. Drag the header to move it vertically or to another display; drag the bottom edge to resize. On relaunch it returns to the saved edge, display, height, and vertical position.
-- The sidebar is nonactivating and joins all Spaces, including alongside full-screen apps. Updates do not request keyboard focus. Settings is an ordinary window that can accept keyboard input.
-- The sidebar and menu-bar popover scroll when needed. Hide the sidebar with its top-right button or from the popover; streaming continues while both are closed. Open Settings and Quit from the popover.
-- **Live** means a valid reading arrived in the current connection within the last 15 seconds. Otherwise the menu bar and primary BPM display show **—**. The sidebar labels any retained value as **Last reading**, with its age. A failed connection loses its live status immediately, even when its last reading was recent.
-- An unavailable saved display temporarily falls back to the main display. Reconnect that display to restore the preference. The app follows the system's light/dark appearance and includes labels for VoiceOver.
+- Click the menu-bar item to open a scrollable popover containing everyone. Favorites appear directly in the menu bar.
+- Streaming continues when the popover is closed. Open Settings or Quit from its footer. Settings has **Friends** and **Connection** tabs.
+- **Live** means a valid reading arrived in the current connection within the last 15 seconds. Otherwise the menu bar and primary BPM display show **—**. The popover labels any retained value as **Last reading**, with its age. A failed connection loses its live status immediately, even when its last reading was recent.
+- The app follows the system's light/dark appearance and includes labels for VoiceOver.
 
 ## Connection behavior
 
@@ -38,7 +37,7 @@ HeartBar implements the plan's [per-device HypeRate WebSocket reference](https:/
 
 Transient failures retry after 1, 2, 4, 8, 16, then at most 30 seconds. A valid reading resets the backoff. Credential and subscription rejections require an explicit retry after correcting the problem. Changing a HypeRate ID replaces that person's socket; removing a friend cancels it. Changing credentials replaces all sockets. Sleep cancels sockets, keepalives, pending retries, and the UI clock; wake recreates them. Generation checks ignore late events from replaced sources.
 
-The application never logs credentials, authenticated URLs, raw provider messages, or network error descriptions. Preferences contain only friends, favorites, demo mode, and placement. Heart-rate readings remain in memory; there is no recording or Events-roster import. The Keychain item uses service `com.heartbar.app.hyperate`, account `api-key`.
+The application never logs credentials, authenticated URLs, raw provider messages, or network error descriptions. Preferences contain only friends, favorites, and demo mode. Heart-rate readings remain in memory; there is no recording or Events-roster import. The Keychain item uses service `com.heartbar.app.hyperate`, account `api-key`.
 
 ## Build and test
 
@@ -62,12 +61,12 @@ xcodebuild -project HeartBar.xcodeproj -scheme HeartBar \
 ## Project layout
 
 - `Sources/HeartBarCore`: models, shared observable store, Keychain/preferences, protocol parsing, live and demo sources.
-- `Sources/HeartBarApp`: status item, nonactivating panel, SwiftUI cards, and settings.
+- `Sources/HeartBarApp`: status item, popover, SwiftUI cards, and settings.
 - `Tests/HeartBarCoreTests`: deterministic unit tests using Swift Testing.
 - `Resources`: app metadata, sandbox entitlements, and the vector-generated icon.
 - `Scripts/generate-project.py`: regenerates the checked-in Xcode project and shared scheme when source files are added or removed. Uses only Python's standard library.
 - `Scripts/GenerateIcon.swift`: regenerates the app icon without image dependencies.
-- `Scripts/verify-ui.sh` and `Scripts/VerifyUI.swift`: render the real views and verify demo updates and panel configuration with isolated, in-memory settings. See `VERIFICATION.md` for results and remaining interactive checks.
+- `Scripts/verify-ui.sh` and `Scripts/VerifyUI.swift`: render the real views and verify background demo updates with isolated, in-memory settings. See `VERIFICATION.md` for results and remaining interactive checks.
 
 ## Troubleshooting
 
@@ -76,7 +75,5 @@ xcodebuild -project HeartBar.xcodeproj -scheme HeartBar \
 **API key or subscription rejected:** update the key in Connection, or edit the HypeRate ID in Friends. Check your HypeRate API access, then retry. Keys are never placed in command-line arguments or source files.
 
 **Keychain error:** unlock your login keychain and try saving again. A failed Keychain write leaves existing credentials and connections intact. Changing local code signatures may cause macOS to request Keychain access again.
-
-**Sidebar missing:** use **Show sidebar** in the menu-bar popover, then **Reset sidebar position** in Sidebar settings if needed.
 
 **`xcodebuild` requires Xcode:** install full Xcode and select its developer directory, or use the command-line build above with Swift 6+ Command Line Tools.

@@ -13,7 +13,6 @@ struct SettingsView: View {
         TabView(selection: $tab) {
             FriendsSettings(store: store).tabItem { Label("Friends", systemImage: "person.2") }.tag(0)
             ConnectionSettings(store: store).tabItem { Label("Connection", systemImage: "antenna.radiowaves.left.and.right") }.tag(1)
-            AppearanceSettings(store: store).tabItem { Label("Sidebar", systemImage: "sidebar.right") }.tag(2)
         }
         .padding(20).frame(width: 620, height: 580).tint(.teal)
         .onAppear { if !store.hasAPIKey && !store.preferences.friends.isEmpty { tab = 1 } }
@@ -179,46 +178,5 @@ struct ConnectionSettings: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.formStyle(.grouped)
-    }
-}
-
-struct AppearanceSettings: View {
-    @ObservedObject var store: AppStore
-    @ViewState private var screens = NSScreen.screens
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Show floating sidebar", isOn: Binding(get: { store.preferences.display.sidebarVisible }, set: { value in store.updateDisplay { $0.sidebarVisible = value } }))
-                Picker("Screen edge", selection: Binding(get: { store.preferences.display.edge }, set: { value in store.updateDisplay { $0.edge = value } })) {
-                    Text("Left").tag(SidebarEdge.left)
-                    Text("Right").tag(SidebarEdge.right)
-                }.pickerStyle(.segmented)
-                Picker("Display", selection: Binding(get: { store.preferences.display.screenID ?? 0 }, set: { value in store.updateDisplay { $0.screenID = value == 0 ? nil : value } })) {
-                    Text("Main display").tag(UInt32(0))
-                    ForEach(screens, id: \.self) { screen in
-                        Text(screen.localizedName).tag(ScreenChoice.identifier(screen))
-                    }
-                    if let id = store.preferences.display.screenID, !screens.contains(where: { ScreenChoice.identifier($0) == id }) {
-                        Text("Saved display (disconnected)").tag(id)
-                    }
-                }
-                Text("Drag the header to move the sidebar. Drag its bottom edge to resize it. HeartBar remembers the display, edge, and vertical position.")
-                    .font(.caption).foregroundStyle(.secondary)
-                Button("Reset sidebar position") {
-                    store.updateDisplay { display in
-                        let visible = display.sidebarVisible
-                        display = DisplayPreferences()
-                        display.sidebarVisible = visible
-                    }
-                }
-            } header: { Text("Sidebar placement") }
-            Section {
-                Label("Stays visible across Spaces", systemImage: "rectangle.3.group")
-                Label("Updates without taking keyboard focus", systemImage: "cursorarrow")
-                Label("Keeps streaming when hidden", systemImage: "waveform.path.ecg")
-            }
-        }.formStyle(.grouped)
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in screens = NSScreen.screens }
     }
 }

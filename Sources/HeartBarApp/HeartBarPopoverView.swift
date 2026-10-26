@@ -2,11 +2,8 @@ import AppKit
 import SwiftUI
 import HeartBarCore
 
-enum PanelSurface { case sidebar, popover }
-
-struct HeartBarPanelView: View {
+struct HeartBarPopoverView: View {
     @ObservedObject var store: AppStore
-    let surface: PanelSurface
     let openSettings: () -> Void
 
     var body: some View {
@@ -54,14 +51,6 @@ struct HeartBarPanelView: View {
                     .font(.system(size: 10)).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
-            if surface == .sidebar {
-                Button { store.updateDisplay { $0.sidebarVisible = false } } label: {
-                    Image(systemName: "sidebar.right").font(.system(size: 15))
-                }
-                .buttonStyle(.plain).foregroundStyle(.secondary)
-                .help("Hide sidebar — HeartBar keeps running in the menu bar")
-                .accessibilityLabel("Hide sidebar")
-            }
         }.padding(.horizontal, 18).padding(.vertical, 18)
     }
 
@@ -101,24 +90,15 @@ struct HeartBarPanelView: View {
     }
 
     private var footer: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Circle().fill(store.liveCount > 0 ? Color.teal : Color.secondary.opacity(0.4)).frame(width: 5, height: 5)
-                Text(store.preferences.demoMode ? "\(store.liveCount) simulated" : "\(store.liveCount) of \(store.friends.count) live")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-                Spacer()
-                Button(action: openSettings) { Image(systemName: "gearshape") }
-                    .buttonStyle(.plain).help("Settings").accessibilityLabel("Open HeartBar settings")
-            }
-            if surface == .popover {
-                HStack {
-                    Button(store.preferences.display.sidebarVisible ? "Hide sidebar" : "Show sidebar") {
-                        store.updateDisplay { $0.sidebarVisible.toggle() }
-                    }.buttonStyle(.bordered)
-                    Spacer()
-                    Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.plain).foregroundStyle(.secondary)
-                }.font(.caption)
-            }
+        HStack(spacing: 10) {
+            Circle().fill(store.liveCount > 0 ? Color.teal : Color.secondary.opacity(0.4)).frame(width: 5, height: 5)
+            Text(store.preferences.demoMode ? "\(store.liveCount) simulated" : "\(store.liveCount) of \(store.friends.count) live")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+            Spacer()
+            Button(action: openSettings) { Image(systemName: "gearshape") }
+                .buttonStyle(.plain).help("Settings").accessibilityLabel("Open HeartBar settings")
+            Button("Quit") { NSApp.terminate(nil) }
+                .buttonStyle(.plain).font(.caption).foregroundStyle(.secondary)
         }.padding(16)
     }
 }

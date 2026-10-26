@@ -184,11 +184,6 @@ import Foundation
         persist()
     }
 
-    public func updateDisplay(_ edit: (inout DisplayPreferences) -> Void) {
-        edit(&preferences.display)
-        persist()
-    }
-
     public func retry(_ friend: Friend) {
         guard running, !sleeping else { return }
         guard source != nil else { rebuildSource(); return }
