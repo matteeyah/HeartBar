@@ -201,30 +201,3 @@ public enum SourceEvent: Equatable, Sendable {
         }
     }
 }
-
-@MainActor public final class DemoHeartRateSource: HeartRateSource {
-    public var onEvent: ((UUID, SourceEvent) -> Void)?
-    private let clock: any SourceClock
-    private var tasks: [UUID: Task<Void, Never>] = [:]
-
-    public init(clock: any SourceClock = SystemSourceClock()) { self.clock = clock }
-
-    public func start(_ friend: Friend) {
-        guard tasks[friend.id] == nil else { return }
-        let index = Friend.demoFriends.firstIndex(where: { $0.id == friend.id }) ?? 0
-        tasks[friend.id] = Task { [weak self] in
-            guard let self else { return }
-            var tick = 0.0
-            while !Task.isCancelled {
-                let bpm = [72, 81, 65][index % 3] + Int((sin(tick / 4 + Double(index)) * 5).rounded())
-                onEvent?(friend.id, .reading(HeartRateReading(bpm: bpm, receivedAt: clock.now)))
-                tick += 1
-                do { try await clock.sleep(seconds: 1) } catch { return }
-            }
-        }
-    }
-
-    public func stop(_ friendID: UUID) { tasks.removeValue(forKey: friendID)?.cancel() }
-    public func stopAll() { Array(tasks.keys).forEach(stop) }
-    public func retry(_ friend: Friend) { stop(friend.id); start(friend) }
-}

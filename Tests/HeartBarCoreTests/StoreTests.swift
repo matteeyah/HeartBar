@@ -4,7 +4,7 @@ import Testing
 
 @MainActor struct StoreTests {
     private func makeStore(repository: MemoryPreferences = MemoryPreferences(), credentials: MemoryCredentials = MemoryCredentials(), clock: ManualClock = ManualClock(), source: RecordingSource = RecordingSource()) -> AppStore {
-        AppStore(repository: repository, credentials: credentials, clock: clock, sourceFactory: { _, _ in source })
+        AppStore(repository: repository, credentials: credentials, clock: clock, sourceFactory: { _ in source })
     }
 
     @Test func firstThreeFriendsAreFavorites() throws {
@@ -67,8 +67,8 @@ import Testing
         let repository = MemoryPreferences()
         let credentials = MemoryCredentials()
         var sources: [RecordingSource] = []
-        var keys: [String?] = []
-        let store = AppStore(repository: repository, credentials: credentials, clock: ManualClock()) { _, key in
+        var keys: [String] = []
+        let store = AppStore(repository: repository, credentials: credentials, clock: ManualClock()) { key in
             let source = RecordingSource(); sources.append(source); keys.append(key); return source
         }
         let friend = try store.saveFriend(name: "Ana", hypeRateID: "ana")
@@ -105,19 +105,22 @@ import Testing
         #expect(store.status(for: friend).connection == .needsAPIKey)
     }
 
-    @Test func demoPreservesRealFriends() throws {
-        let store = makeStore()
-        let friend = try store.saveFriend(name: "Real friend", hypeRateID: "real")
-        store.setDemoMode(true)
-        #expect(store.friends == Friend.demoFriends)
-        #expect(store.menuBarTitle.hasPrefix("♥ Demo"))
-        store.setDemoMode(false)
-        #expect(store.friends == [friend])
+    @Test func startWithoutAPIKeyWaitsForSetup() throws {
+        let credentials = MemoryCredentials()
+        credentials.value = nil
+        let source = RecordingSource()
+        let store = makeStore(credentials: credentials, source: source)
+        let friend = try store.saveFriend(name: "Ana", hypeRateID: "ana")
+        store.start()
+        defer { store.stop() }
+        #expect(source.started.isEmpty)
+        #expect(store.status(for: friend).connection == .needsAPIKey)
+        #expect(store.menuBarTitle == "♥ Ana —")
     }
 
     @Test func sleepStopsAndWakeResumes() throws {
         var sources: [RecordingSource] = []
-        let store = AppStore(repository: MemoryPreferences(), credentials: MemoryCredentials(), clock: ManualClock()) { _, _ in
+        let store = AppStore(repository: MemoryPreferences(), credentials: MemoryCredentials(), clock: ManualClock()) { _ in
             let source = RecordingSource(); sources.append(source); return source
         }
         let friend = try store.saveFriend(name: "Ana", hypeRateID: "abc")
@@ -149,11 +152,13 @@ import Testing
         let repository = UserDefaultsPreferences(defaults: defaults)
         var preferences = Preferences()
         preferences.friends = [Friend(name: "Ana", hypeRateID: "abc", isFavorite: true)]
-        preferences.demoMode = true
         try repository.save(preferences)
-        // Existing installations may still have the removed placement settings.
-        var saved = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(preferences)) as? [String: Any])
+        // Preserve real friends when loading preferences from older app versions.
+        let data = try #require(defaults.data(forKey: "HeartBar.preferences.v1"))
+        var saved = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         saved["display"] = ["edge": "left", "height": 600]
+        saved["demoMode"] = true
+        saved["demoFavorites"] = ["00000000-0000-0000-0000-000000000001"]
         defaults.set(try JSONSerialization.data(withJSONObject: saved), forKey: "HeartBar.preferences.v1")
         #expect(try repository.load() == preferences)
         try repository.save(preferences)
@@ -161,5 +166,6 @@ import Testing
         #expect(!encoded.contains("apiKey"))
         #expect(!encoded.contains("reading"))
         #expect(!encoded.contains("display"))
+        #expect(!encoded.contains("demo"))
     }
 }

@@ -11,7 +11,7 @@ import Foundation
     private let repository: any PreferencesRepository
     private let credentials: any CredentialRepository
     private let clock: any SourceClock
-    private let sourceFactory: (Bool, String?) -> any HeartRateSource
+    private let sourceFactory: (String) -> any HeartRateSource
     private var apiKey: String?
     private var source: (any HeartRateSource)?
     private var sourceGeneration = UUID()
@@ -22,9 +22,7 @@ import Foundation
     public init(repository: any PreferencesRepository = UserDefaultsPreferences(),
                 credentials: any CredentialRepository = KeychainCredentials(),
                 clock: any SourceClock = SystemSourceClock(),
-                sourceFactory: @escaping (Bool, String?) -> any HeartRateSource = { demo, key in
-                    demo ? DemoHeartRateSource() : HypeRateSource(apiKey: key ?? "")
-                }) {
+                sourceFactory: @escaping (String) -> any HeartRateSource = { HypeRateSource(apiKey: $0) }) {
         self.repository = repository
         self.credentials = credentials
         self.clock = clock
@@ -43,20 +41,12 @@ import Foundation
         }
     }
 
-    public var friends: [Friend] {
-        if !preferences.demoMode { return preferences.friends }
-        return Friend.demoFriends.map {
-            var friend = $0
-            friend.isFavorite = preferences.demoFavorites.contains(friend.id)
-            return friend
-        }
-    }
+    public var friends: [Friend] { preferences.friends }
     public var favorites: [Friend] { friends.filter(\.isFavorite) }
     public var liveCount: Int { friends.filter { status(for: $0).isLive(at: now) }.count }
     public var menuBarTitle: String {
-        let prefix = preferences.demoMode ? "♥ Demo" : "♥"
-        guard !favorites.isEmpty else { return "\(prefix) HeartBar" }
-        return prefix + " " + favorites.prefix(3).map { friend in
+        guard !favorites.isEmpty else { return "♥ HeartBar" }
+        return "♥ " + favorites.prefix(3).map { friend in
             let status = status(for: friend)
             let bpm = status.isLive(at: now) ? String(status.reading!.bpm) : "—"
             return "\(friend.compactName) \(bpm)"
@@ -111,13 +101,6 @@ import Foundation
         if running { rebuildSource(); startTicker() }
     }
 
-    public func setDemoMode(_ enabled: Bool) {
-        guard preferences.demoMode != enabled else { return }
-        preferences.demoMode = enabled
-        persist()
-        rebuildSource()
-    }
-
     public func setAPIKey(_ key: String?) throws {
         let cleaned = key?.trimmingCharacters(in: .whitespacesAndNewlines)
         let newKey = cleaned?.isEmpty == false ? cleaned : nil
@@ -145,12 +128,10 @@ import Foundation
             preferences.friends[index] = friend
         } else { preferences.friends.append(friend) }
         persist()
-        if !preferences.demoMode {
-            if previous?.hypeRateID != friend.hypeRateID {
-                source?.stop(friend.id)
-                statuses[friend.id] = initialStatus()
-                source?.start(friend)
-            }
+        if previous?.hypeRateID != friend.hypeRateID {
+            source?.stop(friend.id)
+            statuses[friend.id] = initialStatus()
+            source?.start(friend)
         }
         return friend
     }
@@ -171,16 +152,11 @@ import Foundation
     }
 
     public func toggleFavorite(_ friend: Friend) throws {
-        let isDemo = Friend.demoFriends.contains { $0.id == friend.id }
-        let selected = isDemo ? preferences.demoFavorites.contains(friend.id) : preferences.friends.first { $0.id == friend.id }?.isFavorite == true
-        let count = isDemo ? preferences.demoFavorites.count : preferences.friends.filter(\.isFavorite).count
+        guard let index = preferences.friends.firstIndex(where: { $0.id == friend.id }) else { return }
+        let selected = preferences.friends[index].isFavorite
+        let count = preferences.friends.filter(\.isFavorite).count
         guard selected || count < 3 else { throw FriendValidationError.favoriteLimit }
-        if isDemo {
-            if selected { preferences.demoFavorites.removeAll { $0 == friend.id } }
-            else { preferences.demoFavorites.append(friend.id) }
-        } else if let index = preferences.friends.firstIndex(where: { $0.id == friend.id }) {
-            preferences.friends[index].isFavorite.toggle()
-        }
+        preferences.friends[index].isFavorite.toggle()
         persist()
     }
 
@@ -203,7 +179,7 @@ import Foundation
     }
 
     private func initialStatus() -> ParticipantStatus {
-        ParticipantStatus(connection: sleeping ? .sleeping : (preferences.demoMode || hasAPIKey ? .connecting : .needsAPIKey))
+        ParticipantStatus(connection: sleeping ? .sleeping : (hasAPIKey ? .connecting : .needsAPIKey))
     }
 
     private func rebuildSource() {
@@ -212,9 +188,9 @@ import Foundation
         source?.stopAll()
         source = nil
         statuses = Dictionary(uniqueKeysWithValues: friends.map { ($0.id, initialStatus()) })
-        guard running, !sleeping, preferences.demoMode || hasAPIKey else { return }
+        guard running, !sleeping, let apiKey, !apiKey.isEmpty else { return }
         let generation = sourceGeneration
-        let source = sourceFactory(preferences.demoMode, apiKey)
+        let source = sourceFactory(apiKey)
         source.onEvent = { [weak self] id, event in
             guard let self, self.sourceGeneration == generation,
                   self.friends.contains(where: { $0.id == id }) else { return }

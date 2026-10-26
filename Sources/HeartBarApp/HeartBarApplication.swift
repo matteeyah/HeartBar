@@ -48,7 +48,7 @@ enum HeartBarApplication {
 
     private func refresh() {
         statusItem.button?.title = store.menuBarTitle
-        statusItem.button?.toolTip = store.preferences.demoMode ? "HeartBar · Demo data" : "HeartBar · \(store.liveCount) of \(store.friends.count) live"
+        statusItem.button?.toolTip = "HeartBar · \(store.liveCount) of \(store.friends.count) live"
         statusItem.button?.setAccessibilityLabel(store.menuBarTitle.replacingOccurrences(of: "♥", with: "HeartBar"))
     }
 

@@ -4,7 +4,7 @@ A native macOS menu-bar app that keeps your friends' HypeRate heart rates close 
 
 ## Screenshots
 
-Native views rendered with sample friends and simulated heart rates. The popover scrolls to show everyone.
+Native views rendered with sample friends and simulated heart rates supplied only by the screenshot tool. The popover scrolls to show everyone.
 
 | Light appearance | Dark appearance |
 | --- | --- |
@@ -17,9 +17,9 @@ Native views rendered with sample friends and simulated heart rates. The popover
 
 ![Friends settings with sample HypeRate IDs, favorite stars, reorder controls, and edit and remove buttons](docs/screenshots/friends.png)
 
-**Connect to HypeRate or try the demo**
+**Connect to HypeRate**
 
-![Connection settings with demo mode enabled, an empty API-key field, and reconnect controls](docs/screenshots/connection.png)
+![Connection settings with an empty API-key field and reconnect controls](docs/screenshots/connection.png)
 
 </details>
 
@@ -43,8 +43,6 @@ Build both architectures with `Scripts/build-app.sh --universal`. The resulting 
 3. In **Friends**, add each person's name and the ID from their HypeRate app. They must be actively streaming. IDs must be unique; letters, numbers, hyphens, and underscores are accepted.
 4. The first three friends are favorites. Star or unstar friends to choose up to three menu-bar readings. Use the arrows to reorder friends, **Edit** to change their name or ID, and the trash button to remove them.
 
-**Demo mode** in Connection simulates Ana, Sam, and Mika without a network connection or API key. Both the popover and menu bar explicitly label demo data. Your real friends and their favorites are preserved when switching modes. The empty popover also has a **Try the demo** button.
-
 ## Menu bar
 
 - Click the menu-bar item to open a scrollable popover containing everyone. Favorites appear directly in the menu bar.
@@ -58,7 +56,7 @@ HeartBar implements the plan's [per-device HypeRate WebSocket reference](https:/
 
 Transient failures retry after 1, 2, 4, 8, 16, then at most 30 seconds. A valid reading resets the backoff. Credential and subscription rejections require an explicit retry after correcting the problem. Changing a HypeRate ID replaces that person's socket; removing a friend cancels it. Changing credentials replaces all sockets. Sleep cancels sockets, keepalives, pending retries, and the UI clock; wake recreates them. Generation checks ignore late events from replaced sources.
 
-The application never logs credentials, authenticated URLs, raw provider messages, or network error descriptions. Preferences contain only friends, favorites, and demo mode. Heart-rate readings remain in memory; there is no recording or Events-roster import. The Keychain item uses service `com.heartbar.app.hyperate`, account `api-key`.
+The application never logs credentials, authenticated URLs, raw provider messages, or network error descriptions. Preferences contain only friends and favorites. Heart-rate readings remain in memory; there is no recording or Events-roster import. The Keychain item uses service `com.heartbar.app.hyperate`, account `api-key`.
 
 ## Build and test
 
@@ -68,7 +66,7 @@ Scripts/build-app.sh --universal
 Scripts/verify-ui.sh
 ```
 
-The Swift Testing suite uses controlled clocks and transports. It covers message parsing and participant routing, the 15-second freshness boundary, reconnect cancellation and timeout, credential replacement/removal, sleep/wake, persistence, demo isolation, ordering, and the three-favorite limit. Test data uses a temporary preferences domain and never reads your real Keychain.
+The Swift Testing suite uses controlled clocks and transports. It covers message parsing and participant routing, the 15-second freshness boundary, reconnect cancellation and timeout, credential replacement/removal, startup without an API key, sleep/wake, preference compatibility, ordering, and the three-favorite limit. Test data uses a temporary preferences domain and never reads your real Keychain.
 
 With full Xcode installed, the same tests also run with **⌘U** or:
 
@@ -81,18 +79,18 @@ xcodebuild -project HeartBar.xcodeproj -scheme HeartBar \
 
 ## Project layout
 
-- `Sources/HeartBarCore`: models, shared observable store, Keychain/preferences, protocol parsing, live and demo sources.
+- `Sources/HeartBarCore`: models, shared observable store, Keychain/preferences, protocol parsing, and the HypeRate source.
 - `Sources/HeartBarApp`: status item, popover, SwiftUI cards, and settings.
 - `Tests/HeartBarCoreTests`: deterministic unit tests using Swift Testing.
 - `Resources`: app metadata, sandbox entitlements, and the vector-generated icon.
 - `Scripts/generate-project.py`: regenerates the checked-in Xcode project and shared scheme when source files are added or removed. Uses only Python's standard library.
 - `Scripts/GenerateIcon.swift`: regenerates the app icon without image dependencies.
-- `Scripts/verify-ui.sh` and `Scripts/VerifyUI.swift`: render the real views and verify background demo updates with isolated, in-memory settings. See `VERIFICATION.md` for results and remaining interactive checks.
+- `Scripts/verify-ui.sh` and `Scripts/VerifyUI.swift`: render the real views and verify background updates with an injected sample source and in-memory settings. The sample source is excluded from app targets. See `VERIFICATION.md` for results and remaining interactive checks.
 - `docs/screenshots`: README images. To refresh them, run `Scripts/verify-ui.sh` and copy `popover-light.png`, `popover-dark.png`, `friends.png`, and `connection.png` from `build/previews/` into this directory.
 
 ## Troubleshooting
 
-**No live readings:** turn off Demo mode, confirm the API key, check the friend's exact HypeRate ID, and have them start streaming. A successful subscription can wait indefinitely for a device to start sending; the app does not invent a reading. Use **Retry connection** on the card or **Reconnect all** in Connection.
+**No live readings:** confirm the API key, check the friend's exact HypeRate ID, and have them start streaming. A successful subscription can wait indefinitely for a device to start sending; the app does not invent a reading. Use **Retry connection** on the card or **Reconnect all** in Connection.
 
 **API key or subscription rejected:** update the key in Connection, or edit the HypeRate ID in Friends. Check your HypeRate API access, then retry. Keys are never placed in command-line arguments or source files.
 

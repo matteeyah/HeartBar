@@ -10,8 +10,7 @@ struct HeartBarPopoverView: View {
         VStack(spacing: 0) {
             header
             Divider().opacity(0.5)
-            if store.preferences.demoMode { demoBanner }
-            if !store.preferences.demoMode && !store.hasAPIKey && !store.friends.isEmpty { setupBanner }
+            if !store.hasAPIKey && !store.friends.isEmpty { setupBanner }
             if let notice = store.notice {
                 HStack(alignment: .top) {
                     Text(notice).font(.caption).fixedSize(horizontal: false, vertical: true)
@@ -47,23 +46,11 @@ struct HeartBarPopoverView: View {
             }.accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text("HeartBar").font(.system(size: 17, weight: .semibold, design: .rounded))
-                Text(store.preferences.demoMode ? "A preview with three friends" : "Your people, a little closer")
+                Text("Your people, a little closer")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
         }.padding(.horizontal, 18).padding(.vertical, 18)
-    }
-
-    private var demoBanner: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "sparkles")
-            Text("DEMO").fontWeight(.semibold).tracking(1)
-            Text("Simulated heart rates").foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-        }
-        .font(.system(size: 10)).padding(.horizontal, 18).padding(.vertical, 10)
-        .background(.teal.opacity(0.09))
-        .accessibilityElement(children: .combine)
     }
 
     private var setupBanner: some View {
@@ -82,7 +69,6 @@ struct HeartBarPopoverView: View {
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             Button("Add your first friend", action: openSettings).buttonStyle(.borderedProminent).controlSize(.large)
-            Button("Try the demo") { store.setDemoMode(true) }.buttonStyle(.plain).foregroundStyle(.teal)
             Spacer()
             Text("Friends stream with their HypeRate app.")
                 .font(.caption2).foregroundStyle(.tertiary)
@@ -92,7 +78,7 @@ struct HeartBarPopoverView: View {
     private var footer: some View {
         HStack(spacing: 10) {
             Circle().fill(store.liveCount > 0 ? Color.teal : Color.secondary.opacity(0.4)).frame(width: 5, height: 5)
-            Text(store.preferences.demoMode ? "\(store.liveCount) simulated" : "\(store.liveCount) of \(store.friends.count) live")
+            Text("\(store.liveCount) of \(store.friends.count) live")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
             Spacer()
             Button(action: openSettings) { Image(systemName: "gearshape") }
@@ -109,7 +95,6 @@ struct FriendCard: View {
 
     private var status: ParticipantStatus { store.status(for: friend) }
     private var live: Bool { status.isLive(at: store.now) }
-    private var demo: Bool { store.preferences.demoMode }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -142,12 +127,12 @@ struct FriendCard: View {
                     .foregroundStyle(live ? Color.teal.opacity(0.75) : Color.secondary.opacity(0.22))
                     .accessibilityHidden(true)
             }.accessibilityElement(children: .ignore)
-                .accessibilityLabel(live ? "\(friend.name), \(status.reading!.bpm) beats per minute, \(demo ? "simulated" : "live")" : "\(friend.name), no live reading")
+                .accessibilityLabel(live ? "\(friend.name), \(status.reading!.bpm) beats per minute, live" : "\(friend.name), no live reading")
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 5) {
                     Circle().fill(live ? Color.teal : Color.secondary).frame(width: 5, height: 5)
-                    Text(status.label(at: store.now, demo: demo))
+                    Text(status.label(at: store.now))
                     Spacer(minLength: 0)
                     if live, let reading = status.reading { Text(reading.ageDescription(at: store.now)).foregroundStyle(.tertiary) }
                 }.font(.system(size: 10)).foregroundStyle(.secondary)

@@ -41,10 +41,6 @@ struct FriendsSettings: View {
                 Button { editor = FriendEditorItem() } label: { Label("Add friend", systemImage: "plus") }
                     .buttonStyle(.borderedProminent)
             }
-            if store.preferences.demoMode {
-                Label("Demo is on. Your saved friends will return when you turn it off in Connection.", systemImage: "info.circle")
-                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
             if store.preferences.friends.isEmpty {
                 ContentUnavailableView("No friends yet", systemImage: "person.crop.circle.badge.plus", description: Text("Ask a friend for the ID shown in their HypeRate app."))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -134,11 +130,6 @@ struct ConnectionSettings: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Demo mode", isOn: Binding(get: { store.preferences.demoMode }, set: store.setDemoMode))
-                Text("Preview three simulated friends without an API key. Your saved friends are kept separately.")
-                    .font(.caption).foregroundStyle(.secondary)
-            } header: { Text("Try HeartBar") }
-            Section {
                 HStack {
                     Label(store.hasAPIKey ? "API key saved in Keychain" : "No API key saved", systemImage: store.hasAPIKey ? "checkmark.shield" : "key")
                         .foregroundStyle(store.hasAPIKey ? Color.teal : Color.secondary)
@@ -152,7 +143,7 @@ struct ConnectionSettings: View {
                             try store.setAPIKey(apiKey)
                             apiKey = ""
                             failure = false
-                            result = "API key saved.\(store.preferences.demoMode ? " Turn off demo mode to connect your friends." : " Connecting your friends…")"
+                            result = "API key saved. Connecting your friends…"
                         } catch { failure = true; result = error.localizedDescription }
                     }.disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     if store.hasAPIKey {
@@ -170,7 +161,7 @@ struct ConnectionSettings: View {
             } header: { Text("HypeRate connection") }
             Section {
                 HStack {
-                    Text("\(store.liveCount) of \(store.friends.count) \(store.preferences.demoMode ? "simulated friends active" : "friends live")")
+                    Text("\(store.liveCount) of \(store.friends.count) friends live")
                     Spacer()
                     Button("Reconnect all") { store.retryAll() }
                 }

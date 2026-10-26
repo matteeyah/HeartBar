@@ -18,11 +18,6 @@ public struct Friend: Codable, Identifiable, Equatable, Sendable {
         return first.count > 9 ? String(first.prefix(8)) + "…" : first
     }
 
-    public static let demoFriends = [
-        Friend(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, name: "Ana", hypeRateID: "demo-ana", isFavorite: true),
-        Friend(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, name: "Sam", hypeRateID: "demo-sam", isFavorite: true),
-        Friend(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, name: "Mika", hypeRateID: "demo-mika", isFavorite: true)
-    ]
 }
 
 public struct HeartRateReading: Equatable, Sendable {
@@ -95,8 +90,8 @@ public struct ParticipantStatus: Equatable, Sendable {
         connection == .connected && reading?.isFresh(at: now) == true
     }
 
-    public func label(at now: Date, demo: Bool) -> String {
-        if isLive(at: now) { return demo ? "Simulated" : "Live" }
+    public func label(at now: Date) -> String {
+        if isLive(at: now) { return "Live" }
         if connection == .connected, reading != nil { return "Stale · waiting for updates" }
         return connection.label
     }
@@ -104,8 +99,6 @@ public struct ParticipantStatus: Equatable, Sendable {
 
 public struct Preferences: Codable, Equatable, Sendable {
     public var friends: [Friend] = []
-    public var demoMode: Bool = false
-    public var demoFavorites: [UUID] = Friend.demoFriends.map(\.id)
     public init() {}
 
     public mutating func sanitize() {
@@ -122,7 +115,6 @@ public struct Preferences: Codable, Equatable, Sendable {
             }
             return friend
         }
-        demoFavorites = Array(Set(demoFavorites).intersection(Friend.demoFriends.map(\.id))).sorted { $0.uuidString < $1.uuidString }
     }
 }
 

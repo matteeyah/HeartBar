@@ -8,8 +8,34 @@ import HeartBarCore
     func save(_ preferences: Preferences) { value = preferences }
 }
 @MainActor private final class PreviewCredentials: CredentialRepository {
-    func load() -> String? { nil }
-    func save(_ apiKey: String?) {}
+    private var value: String?
+    init(value: String? = nil) { self.value = value }
+    func load() -> String? { value }
+    func save(_ apiKey: String?) { value = apiKey }
+}
+
+// Screenshot-only sample data source; this script is excluded from app targets.
+@MainActor private final class PreviewHeartRateSource: HeartRateSource {
+    var onEvent: ((UUID, SourceEvent) -> Void)?
+    private var tasks: [UUID: Task<Void, Never>] = [:]
+
+    func start(_ friend: Friend) {
+        guard tasks[friend.id] == nil else { return }
+        let baseline = ["ana-id": 72, "sam-id": 81, "mika-id": 65][friend.hypeRateID] ?? 70
+        tasks[friend.id] = Task { [weak self] in
+            var tick = 0.0
+            while !Task.isCancelled {
+                let bpm = baseline + Int((sin(tick / 4) * 5).rounded())
+                self?.onEvent?(friend.id, .reading(HeartRateReading(bpm: bpm, receivedAt: Date())))
+                tick += 1
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            }
+        }
+    }
+
+    func stop(_ friendID: UUID) { tasks.removeValue(forKey: friendID)?.cancel() }
+    func stopAll() { Array(tasks.keys).forEach(stop) }
+    func retry(_ friend: Friend) { stop(friend.id); start(friend) }
 }
 
 // Compiled alongside the real app views. No real preferences or Keychain access.
@@ -18,12 +44,16 @@ import HeartBarCore
         let application = NSApplication.shared
         application.setActivationPolicy(.prohibited)
         let repository = PreviewPreferences()
-        repository.value.demoMode = true
-        let store = AppStore(repository: repository, credentials: PreviewCredentials())
+        let store = AppStore(repository: repository, credentials: PreviewCredentials(value: "preview-only")) { _ in
+            PreviewHeartRateSource()
+        }
+        for (name, id) in [("Ana", "ana-id"), ("Sam", "sam-id"), ("Mika", "mika-id")] {
+            try store.saveFriend(name: name, hypeRateID: id)
+        }
         store.start()
         defer { store.stop() }
         try await Task.sleep(for: .seconds(1.2))
-        precondition(store.liveCount == 3, "Demo source must publish all participants")
+        precondition(store.liveCount == 3, "Preview source must publish all participants")
         let firstTitle = store.menuBarTitle
         try await Task.sleep(for: .seconds(1.2))
         precondition(store.menuBarTitle != firstTitle, "Readings must change while all windows are hidden")
@@ -34,19 +64,18 @@ import HeartBarCore
             try await render(HeartBarPopoverView(store: store, openSettings: {}),
                              size: NSSize(width: 360, height: 480), appearance: appearance, to: output.appendingPathComponent("popover-\(name).png"))
         }
+        try store.setAPIKey(nil)
         try await render(ConnectionSettings(store: store), size: NSSize(width: 580, height: 500),
                          appearance: .aqua, to: output.appendingPathComponent("connection.png"))
         try await render(SettingsView(store: store), size: NSSize(width: 620, height: 580),
                          appearance: .aqua, to: output.appendingPathComponent("settings.png"))
-        store.setDemoMode(false)
-        try await render(HeartBarPopoverView(store: store, openSettings: {}),
+        let emptyStore = AppStore(repository: PreviewPreferences(), credentials: PreviewCredentials())
+        try await render(HeartBarPopoverView(store: emptyStore, openSettings: {}),
                          size: NSSize(width: 360, height: 480), appearance: .aqua, to: output.appendingPathComponent("empty.png"))
-        for (name, id) in [("Ana", "ana-id"), ("Sam", "sam-id"), ("Mika", "mika-id"), ("Robin", "robin-id")] {
-            try store.saveFriend(name: name, hypeRateID: id)
-        }
+        try store.saveFriend(name: "Robin", hypeRateID: "robin-id")
         try await render(FriendsSettings(store: store), size: NSSize(width: 580, height: 500),
                          appearance: .aqua, to: output.appendingPathComponent("friends.png"))
-        print("PASS: demo updates while the popover is closed.")
+        print("PASS: injected preview readings update while the popover is closed.")
         print("Rendered light/dark popover, empty state, and settings to build/previews.")
     }
 
